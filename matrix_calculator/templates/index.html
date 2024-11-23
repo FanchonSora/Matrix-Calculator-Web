@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Matrix Calculator</title>
+</head>
+<body>
+    <h1>Matrix Calculator</h1>
+    <form method="post">
+        <label for="matrix">Enter matrix (rows separated by newlines, numbers separated by spaces):</label><br>
+        <textarea name="matrix" rows="5" cols="30">{{ request.form.get('matrix', '') }}</textarea><br><br>
+        <input type="submit" value="Calculate">
+    </form>
+    {% if result %}
+        <h2>Results:</h2>
+        {% if result.error %}
+            <p style="color: red;">Error: {{ result.error }}</p>
+        {% else %}
+            <p><strong>Determinant:</strong> {{ result.determinant }}</p>
+            <p><strong>Inverse:</strong></p>
+            {% if result.inverse == 'Matrix is singular and cannot be inverted' or result.inverse == 'Not a square matrix' %}
+                <p>{{ result.inverse }}</p>
+            {% else %}
+                <table border="1" cellpadding="5">
+                    {% for row in result.inverse %}
+                        <tr>
+                            {% for item in row %}
+                                <td>{{ '{0:.2f}'.format(item) }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+            <p><strong>Transpose:</strong></p>
+            <table border="1" cellpadding="5">
+                {% for row in result.transpose %}
+                    <tr>
+                        {% for item in row %}
+                            <td>{{ '{0:.2f}'.format(item) }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+            <p><strong>Rank:</strong> {{ result.rank }}</p>
+        {% endif %}
+    {% endif %}
+</body>
+</html>
