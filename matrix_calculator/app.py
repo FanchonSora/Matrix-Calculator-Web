@@ -1,53 +1,61 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify, render_template
 import numpy as np
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+def parse_matrix(matrix_str):
+    rows = matrix_str.strip().split('\n')
+    return np.array([[float(num) for num in row.split()] for row in rows])
+
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+@app.route('/', methods=['POST'])
 def matrix_operations():
-    result = None
-    if request.method == 'POST':
-        matrix_input = request.form['matrix']
-        try:
-            # Parse the input matrix
-            matrix = []
-            rows = matrix_input.strip().split('\n')
-            for row in rows:
-                matrix.append([float(num) for num in row.strip().split()])
-            np_matrix = np.array(matrix)
+    data = request.get_json()
+    matrixA = data.get('matrixA')
+    matrixB = data.get('matrixB')
+    operation = data.get('operation')
 
-            # Calculate determinant
-            determinant = None
-            if np_matrix.shape[0] == np_matrix.shape[1]:
-                determinant = np.linalg.det(np_matrix)
-            else:
-                determinant = 'Not a square matrix'
+    try:
+        result = {}
+        if matrixA:
+            matrixA = parse_matrix(matrixA)
 
-            # Calculate inverse
-            inverse = None
-            if np_matrix.shape[0] == np_matrix.shape[1]:
-                try:
-                    inverse = np.linalg.inv(np_matrix)
-                except np.linalg.LinAlgError:
-                    inverse = 'Matrix is singular and cannot be inverted'
-            else:
-                inverse = 'Not a square matrix'
+        if matrixB:
+            matrixB = parse_matrix(matrixB)
 
-            # Calculate transpose
-            transpose = np_matrix.T
+        if operation == 'determinant' and matrixA.shape[0] == matrixA.shape[1]:
+            result['determinant_A'] = np.linalg.det(matrixA)
+            if matrixB is not None and matrixB.shape[0] == matrixB.shape[1]:
+                result['determinant_B'] = np.linalg.det(matrixB)
 
-            # Calculate rank
-            rank = np.linalg.matrix_rank(np_matrix)
+        elif operation == 'transpose':
+            result['transpose_A'] = matrixA.T.tolist()
+            if matrixB is not None:
+                result['transpose_B'] = matrixB.T.tolist()
 
-            result = {
-                'determinant': determinant,
-                'inverse': inverse if isinstance(inverse, str) else inverse.tolist(),
-                'transpose': transpose.tolist(),
-                'rank': rank
-            }
-        except Exception as e:
-            result = {'error': str(e)}
-    return render_template('index.html', result=result)
+        elif operation == 'rank':
+            result['rank_A'] = np.linalg.matrix_rank(matrixA)
+            if matrixB is not None:
+                result['rank_B'] = np.linalg.matrix_rank(matrixB)
+
+        elif operation == 'inverse':
+            try:
+                result['inverse_A'] = np.linalg.inv(matrixA).tolist()
+                result['inverse_B'] = np.linalg.inv(matrixB).tolist()
+            except np.linalg.LinAlgError:
+                result['inverse_A'] = "Matrix A is singular"
+                result['inverse_B'] = "Matrix B is singular"
+
+        else:
+            result['error'] = "Unsupported operation or invalid matrix input."
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)
