@@ -36,16 +36,34 @@
             width: 48%;
         }
 
-        textarea {
-            width: 100%;
-            height: 150px;
+        .matrix-controls {
+            display: flex;
+            gap: 10px;
             margin-bottom: 10px;
-            font-family: monospace;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            padding: 5px;
             font-size: 14px;
-            padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            resize: none;
+            text-align: center;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 5px;
+        }
+
+        .matrix-grid input {
+            width: 50px;
+            height: 30px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f4f4f4;
+            pointer-events: none;
         }
 
         .actions {
@@ -67,10 +85,18 @@
             background-color: #0056b3;
         }
 
+        .result-section {
+            margin-top: 20px;
+        }
+
         .result {
-            background: #f4f4f4;
-            padding: 20px;
-            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .result-matrix {
+            width: 48%;
         }
     </style>
 </head>
@@ -81,26 +107,56 @@
             <div class="matrix-section">
                 <div class="matrix">
                     <h3>Matrix A:</h3>
-                    <textarea name="matrixA" id="matrixA" placeholder="Enter matrix A rows, separated by spaces."></textarea>
+                    <div class="matrix-controls">
+                        <label>Rows: <input type="number" id="rowsA" min="1" value="2" onchange="generateMatrix('A')"></label>
+                        <label>Columns: <input type="number" id="colsA" min="1" value="2" onchange="generateMatrix('A')"></label>
+                    </div>
+                    <div id="matrixA-grid" class="matrix-grid"></div>
                 </div>
                 <div class="matrix">
                     <h3>Matrix B:</h3>
-                    <textarea name="matrixB" id="matrixB" placeholder="Enter matrix B rows, separated by spaces."></textarea>
+                    <div class="matrix-controls">
+                        <label>Rows: <input type="number" id="rowsB" min="1" value="2" onchange="generateMatrix('B')"></label>
+                        <label>Columns: <input type="number" id="colsB" min="1" value="2" onchange="generateMatrix('B')"></label>
+                    </div>
+                    <div id="matrixB-grid" class="matrix-grid"></div>
                 </div>
             </div>
             <div class="actions">
                 <button type="button" onclick="calculate('determinant')">Determinant</button>
                 <button type="button" onclick="calculate('transpose')">Transpose</button>
                 <button type="button" onclick="calculate('rank')">Rank</button>
+                <button type="button" onclick="calculate('A + B')">Add Matrices</button>
                 <button type="button" onclick="calculate('inverse')">Inverse</button>
             </div>
         </form>
-        <div id="result" class="result"></div>
+        <div id="result-section" class="result-section">
+            <h3>Result:</h3>
+            <div id="result" class="result"></div>
+        </div>
     </div>
     <script>
+        function generateMatrix(matrixId) {
+            const rows = document.getElementById(`rows${matrixId}`).value;
+            const cols = document.getElementById(`cols${matrixId}`).value;
+            const container = document.getElementById(`matrix${matrixId}-grid`);
+            
+            container.innerHTML = ''; // Clear previous inputs
+            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.placeholder = '0';
+                    input.name = `matrix${matrixId}[${i}][${j}]`;
+                    container.appendChild(input);
+                }
+            }
+        }
+
         async function calculate(operation) {
-            const matrixA = document.getElementById('matrixA').value;
-            const matrixB = document.getElementById('matrixB').value;
+            const matrixA = getMatrixValues('A');
+            const matrixB = getMatrixValues('B');
 
             const response = await fetch('/', {
                 method: 'POST',
@@ -109,11 +165,67 @@
             });
 
             const result = await response.json();
-            document.getElementById('result').innerHTML = `
-                <h3>Result:</h3>
-                <pre>${JSON.stringify(result, null, 2)}</pre>
-            `;
+            displayResult(result);
         }
+
+        function getMatrixValues(matrixId) {
+            const rows = document.getElementById(`rows${matrixId}`).value;
+            const cols = document.getElementById(`cols${matrixId}`).value;
+            const inputs = document.querySelectorAll(`#matrix${matrixId}-grid input`);
+            const matrix = [];
+
+            let index = 0;
+            for (let i = 0; i < rows; i++) {
+                const row = [];
+                for (let j = 0; j < cols; j++) {
+                    row.push(parseFloat(inputs[index].value) || 0);
+                    index++;
+                }
+                matrix.push(row);
+            }
+            return matrix;
+        }
+
+        function displayResult(result) {
+            const resultContainer = document.getElementById('result');
+            resultContainer.innerHTML = ''; // Clear previous results
+
+            if (result.error) {
+                resultContainer.innerHTML = `<p style="color: red;">${result.error}</p>`;
+                return;
+            }
+
+            for (const key in result) {
+                const matrix = result[key];
+                const resultMatrixDiv = document.createElement('div');
+                resultMatrixDiv.className = 'result-matrix';
+                resultMatrixDiv.innerHTML = `<h4>${key}:</h4>`;
+
+                if (Array.isArray(matrix)) {
+                    const grid = document.createElement('div');
+                    grid.className = 'matrix-grid';
+                    grid.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
+
+                    matrix.forEach(row => {
+                        row.forEach(value => {
+                            const input = document.createElement('input');
+                            input.value = value.toFixed(2);
+                            grid.appendChild(input);
+                        });
+                    });
+
+                    resultMatrixDiv.appendChild(grid);
+                } else {
+                    resultMatrixDiv.innerHTML += `<p>${matrix}</p>`;
+                }
+
+                resultContainer.appendChild(resultMatrixDiv);
+            }
+        }
+
+        // Initialize default matrices
+        generateMatrix('A');
+        generateMatrix('B');
     </script>
 </body>
 </html>
