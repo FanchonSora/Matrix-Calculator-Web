@@ -63,7 +63,10 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: #f4f4f4;
-            pointer-events: none;
+        }
+
+        .matrix-grid input[readonly] {
+            background-color: #e9ecef;
         }
 
         .actions {
@@ -74,15 +77,28 @@
             padding: 10px 20px;
             margin-right: 10px;
             border: none;
-            background-color: #007bff;
-            color: white;
+            background-color: transparent; 
+            color: #000000; 
             font-size: 16px;
             cursor: pointer;
             border-radius: 5px;
-        }
+            transition: background-color 0.3s, color 0.3s; 
+        }   
 
         button:hover {
-            background-color: #0056b3;
+            background-color: #007bff; 
+            color: white; 
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        .scalar-input {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            gap: 10px;
         }
 
         .result-section {
@@ -92,6 +108,7 @@
         .result {
             display: flex;
             justify-content: space-between;
+            flex-wrap: wrap;
             gap: 20px;
         }
 
@@ -122,12 +139,18 @@
                     <div id="matrixB-grid" class="matrix-grid"></div>
                 </div>
             </div>
+            <div class="scalar-input">
+                <label>Scalar: <input type="number" id="scalar" step="any" placeholder="Enter scalar value"></label>
+                <button type="button" onclick="calculate('multiply_scalar')">Multiply by Scalar</button>
+            </div>
             <div class="actions">
                 <button type="button" onclick="calculate('determinant')">Determinant</button>
                 <button type="button" onclick="calculate('transpose')">Transpose</button>
                 <button type="button" onclick="calculate('rank')">Rank</button>
                 <button type="button" onclick="calculate('A + B')">Add Matrices</button>
+                <button type="button" onclick="calculate('A * B')">Multiply Matrices</button>
                 <button type="button" onclick="calculate('inverse')">Inverse</button>
+                <button type="button" onclick="calculate('row_echelon')">Row Echelon Form</button>
             </div>
         </form>
         <div id="result-section" class="result-section">
@@ -149,6 +172,7 @@
                     input.type = 'number';
                     input.placeholder = '0';
                     input.name = `matrix${matrixId}[${i}][${j}]`;
+                    input.step = "any"; // Allow decimal values
                     container.appendChild(input);
                 }
             }
@@ -157,11 +181,12 @@
         async function calculate(operation) {
             const matrixA = getMatrixValues('A');
             const matrixB = getMatrixValues('B');
+            const scalar = parseFloat(document.getElementById('scalar').value) || null;
 
             const response = await fetch('/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ matrixA, matrixB, operation })
+                body: JSON.stringify({ matrixA, matrixB, scalar, operation })
             });
 
             const result = await response.json();
@@ -210,6 +235,7 @@
                         row.forEach(value => {
                             const input = document.createElement('input');
                             input.value = value.toFixed(2);
+                            input.readOnly = true; // Prevent user modification
                             grid.appendChild(input);
                         });
                     });
