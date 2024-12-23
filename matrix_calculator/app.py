@@ -91,6 +91,26 @@ def matrix_operations():
             result['row_echelon_A'] = row_echelon(matrixA).tolist()
             if matrixB is not None:
                 result['row_echelon_B'] = row_echelon(matrixB).tolist()
+        elif operation == 'eigen':
+             # Calculate eigenvalues and eigenvectors for Matrix A
+            if matrixA.shape[0] == matrixA.shape[1]:
+                w_A, v_A = np.linalg.eig(matrixA)
+                # Convert to list; eigenvalues can be 1D so we'll wrap them in a 2D list for neat display
+                result['eigenvalues_A'] = [w_A.tolist()] 
+                # eigenvectors_A will already be 2D
+                result['eigenvectors_A'] = v_A.tolist()
+            else:
+                result['eigenvalues_A'] = "Matrix A is not square."
+                result['eigenvectors_A'] = "Matrix A is not square."
+            # Calculate eigenvalues and eigenvectors for Matrix B
+            if matrixB is not None and matrixB.shape[0] == matrixB.shape[1]:
+                w_B, v_B = np.linalg.eig(matrixB)
+                result['eigenvalues_B'] = [w_B.tolist()]
+                result['eigenvectors_B'] = v_B.tolist()
+            else:
+                result['eigenvalues_B'] = "Matrix B is not square."
+                result['eigenvectors_B'] = "Matrix B is not square."
+
         else:
             raise ValueError("Unsupported operation or invalid input.")
         return jsonify(result)
